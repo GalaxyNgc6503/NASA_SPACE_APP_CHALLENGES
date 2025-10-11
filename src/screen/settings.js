@@ -28,7 +28,6 @@ const defaultSettings = {
     heatIndex: false,
     airQuality: false,
     uvIndex: false,       // new
-    pollenCount: false,   // new
   },
 };
 

@@ -4,8 +4,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PaperProvider, MD3LightTheme } from 'react-native-paper';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import HomeScreen from './src/home';
-import SettingsScreen from './src/settings';
+import HomeScreen from './src/screen/home';
+import SettingsScreen from './src/screen/settings';
 import { registerTranslation } from 'react-native-paper-dates';
 
 // ✅ 注册英文 locale，一次性执行

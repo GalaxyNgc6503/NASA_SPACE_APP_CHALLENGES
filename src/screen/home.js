@@ -10,7 +10,13 @@ import {
     Alert,
     ActivityIndicator,
 } from 'react-native';
-import MapView, { UrlTile, Marker } from 'react-native-maps';
+// Use presentational components for map, search and weather cards
+import MapComponent from '../components/Map';
+import SearchBar from '../components/SearchBar';
+import WeatherDetailCard from '../components/WeatherCard';
+import { multipleLinearRegression, predict } from '../utils/calculations';
+import { calculateHeatIndex } from '../utils/predictions';
+import { fetchHistoricalData } from '../utils/nasaApi';
 import { Button, IconButton, Card } from 'react-native-paper';
 import { DatePickerModal } from 'react-native-paper-dates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -44,7 +50,6 @@ export default function HomeScreen({ navigation }) {
     const [windData, setWindData] = useState([]);
     const [humidityData, setHumidityData] = useState([]);
     const [uvIndexData, setUvIndexData] = useState([]);
-    const [pollenCountData, setPollenCountData] = useState([]);
     const [labels, setLabels] = useState([]);
     const [predictionData, setPredictionData] = useState(null);
 
@@ -56,7 +61,21 @@ export default function HomeScreen({ navigation }) {
     const loadSettings = async () => {
         try {
             const stored = await AsyncStorage.getItem('appSettings');
-            if (stored) setSettings(JSON.parse(stored));
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                // ensure displayData exists and has defaults for any missing keys
+                const defaultDisplay = {
+                    temperature: true,
+                    rainfall: true,
+                    wind: true,
+                    humidity: false,
+                    heatIndex: false,
+                    airQuality: false,
+                    uvIndex: false,
+                };
+                parsed.displayData = { ...defaultDisplay, ...(parsed.displayData || {}) };
+                setSettings(parsed);
+            }
         } catch (e) {
             console.log('Failed to load settings', e);
         }
@@ -106,116 +125,102 @@ export default function HomeScreen({ navigation }) {
     const onConfirmDate = ({ date }) => {
         setOpenDate(false);
         setSelectedDate(date);
-        fetchHistoricalData(markerPos.latitude, markerPos.longitude, date);
-    };
-
-    const linearRegressionPredict = (data) => {
-        const cleanData = data.filter((v) => v !== null && !isNaN(v));
-        if (cleanData.length === 0) return null;
-        const n = cleanData.length;
-        const xMean = (n - 1) / 2;
-        const yMean = cleanData.reduce((a, b) => a + b, 0) / n;
-        let num = 0,
-        den = 0;
-        for (let i = 0; i < n; i++) {
-            num += (i - xMean) * (cleanData[i] - yMean);
-            den += (i - xMean) ** 2;
-        }
-        const slope = den !== 0 ? num / den : 0;
-        const intercept = yMean - slope * xMean;
-        return parseFloat((slope * n + intercept).toFixed(2));
-    };
-
-    const calculateHeatIndex = (T, H) => {
-        if (T === null || H === null) return null;
-        const hi =
-            -8.78469475556 +
-                1.61139411 * T +
-                2.33854883889 * H -
-                0.14611605 * T * H -
-                0.012308094 * T * T -
-                0.016424828 * H * H +
-                0.002211732 * T * T * H +
-                0.00072546 * T * H * H -
-                0.000003582 * T * T * H * H;
-        return parseFloat(hi.toFixed(2));
-    };
-
-    const calculateAirQuality = (pollenArr) => {
-        return pollenArr.map((val) => (val ? val * 2 : null));
-    };
-
-    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-    const fetchHistoricalData = async (lat, lon, date) => {
-        if (!date || !lat || !lon) return;
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const currentYear = new Date().getFullYear();
-        const startYear = currentYear - 6;
-
-        const tempArr = [],
-        rainArr = [],
-        windArr = [],
-        humArr = [],
-        uvArr = [],
-        pollenArr = [],
-        labelArr = [];
-
-        for (let y = startYear; y <= currentYear; y++) {
+        (async () => {
+            setLoading(true);
             try {
-                const url = `https://power.larc.nasa.gov/api/temporal/daily/point?parameters=T2M_MAX,T2M_MIN,PRECTOTCORR,WS10M,RH2M,ALLSKY_SFC_UV_INDEX&community=RE&longitude=${lon}&latitude=${lat}&start=${y}${month}${day}&end=${y}${month}${day}&format=JSON`;
-                const res = await fetch(url, {
-                    headers: { Accept: 'application/json', 'User-Agent': 'NASAApp/1.0' },
-                });
-                const json = await res.json();
-                const params = json?.properties?.parameter;
-                if (!params) continue;
-                const key = `${y}${month}${day}`;
-                const tMax = params.T2M_MAX?.[key] ?? null;
-                const tMin = params.T2M_MIN?.[key] ?? null;
-                const avgTemp = tMax && tMin ? (tMax + tMin) / 2 : tMax ?? tMin;
-                tempArr.push(avgTemp ?? null);
-                rainArr.push(params.PRECTOTCORR?.[key] ?? null);
-                windArr.push(params.WS10M?.[key] ?? null);
-                humArr.push(params.RH2M?.[key] ?? null);
-                uvArr.push(params.ALLSKY_SFC_UV_INDEX?.[key] ?? null);
-                pollenArr.push(Math.floor(Math.random() * 50));
-                labelArr.push(String(y));
+                const d = await fetchHistoricalData(markerPos.latitude, markerPos.longitude, date);
+                if (d) {
+                    setTemperatureData(d.temperature || []);
+                    setRainfallData(d.rainfall || []);
+                    setWindData(d.wind || []);
+                    setHumidityData(d.humidity || []);
+                    setUvIndexData(d.uvIndex || []);
+                    setLabels(d.labels || []);
+                    // run prediction after data is set
+                    makePrediction();
+                }
             } catch (err) {
-                console.log(`Error fetching NASA data for ${y}`, err);
+                console.error('Error fetching NASA data on date confirm', err);
+            } finally {
+                setLoading(false);
             }
-            await sleep(1000);
-        }
-
-        setTemperatureData(tempArr);
-        setRainfallData(rainArr);
-        setWindData(windArr);
-        setHumidityData(humArr);
-        setUvIndexData(uvArr);
-        setPollenCountData(pollenArr);
-        setLabels(labelArr);
-        console.log('✅ All NASA data fetched successfully');
+        })();
     };
+
+    // prediction helpers moved to src/utils/predictions.js
+
+    // Using fetchHistoricalData from src/utils/nasaApi.js
 
     const makePrediction = () => {
         if (!temperatureData.length) return;
-        const hiArr = temperatureData.map((t, i) =>
-            calculateHeatIndex(t, humidityData[i])
-        );
-        const aqArr = calculateAirQuality(pollenCountData);
-        const prediction = {
-            temperature: linearRegressionPredict(temperatureData),
-            rainfall: linearRegressionPredict(rainfallData),
-            wind: linearRegressionPredict(windData),
-            humidity: linearRegressionPredict(humidityData),
-            heatIndex: linearRegressionPredict(hiArr),
-            airQuality: linearRegressionPredict(aqArr),
-            uvIndex: linearRegressionPredict(uvIndexData),
-            pollenCount: linearRegressionPredict(pollenCountData),
+
+        // derived target series
+    const hiArr = temperatureData.map((t, i) => calculateHeatIndex(t, humidityData[i]));
+
+        // helper to run MLR for a given target array and predictor arrays
+        const runMLR = (targetArr, predictorArrs) => {
+            const X = [];
+            const y = [];
+            for (let i = 0; i < targetArr.length; i++) {
+                const row = [];
+                let skip = false;
+                for (const arr of predictorArrs) {
+                    const v = arr[i];
+                    if (v == null || isNaN(v)) { skip = true; break; }
+                    row.push(v);
+                }
+                const t = targetArr[i];
+                if (skip || t == null || isNaN(t)) continue;
+                X.push(row);
+                y.push(t);
+            }
+            if (X.length < 2) return { pred: null, coeffs: null };
+            try {
+                const coeffs = multipleLinearRegression(X, y);
+                // build features for prediction using latest available or mean
+                const latestOrMean = (arr) => {
+                    for (let i = arr.length - 1; i >= 0; i--) if (arr[i] != null && !isNaN(arr[i])) return arr[i];
+                    const clean = arr.filter(v => v != null && !isNaN(v));
+                    return clean.length ? clean.reduce((s, v) => s + v, 0) / clean.length : 0;
+                };
+                const featureVec = predictorArrs.map(a => latestOrMean(a));
+                const p = predict(coeffs, featureVec);
+                return { pred: parseFloat(p.toFixed(2)), coeffs };
+            } catch (err) {
+                console.warn('MLR error', err);
+                return { pred: null, coeffs: null };
+            }
         };
-        console.log('📊 Prediction data:', prediction);
-        setPredictionData(prediction);
+
+        // predictor arrays for different targets
+        const preds = {
+            temperature: [humidityData, rainfallData, windData, uvIndexData],
+            rainfall: [temperatureData, humidityData, windData, uvIndexData],
+            wind: [temperatureData, humidityData, rainfallData, uvIndexData],
+            humidity: [temperatureData, rainfallData, windData, uvIndexData],
+            uvIndex: [temperatureData, humidityData, rainfallData, windData],
+            heatIndex: [temperatureData, humidityData, rainfallData, windData, uvIndexData],
+        };
+
+        const result = {};
+        // run MLR for each target
+        const targets = {
+            temperature: temperatureData,
+            rainfall: rainfallData,
+            wind: windData,
+            humidity: humidityData,
+            uvIndex: uvIndexData,
+            heatIndex: hiArr,
+        };
+
+        for (const key of Object.keys(targets)) {
+            const { pred, coeffs } = runMLR(targets[key], preds[key]);
+            result[key] = pred;
+            if (coeffs) result[`${key}Coefficients`] = coeffs;
+        }
+
+        console.log('📊 Prediction data (MLR):', result);
+        setPredictionData(result);
     };
 
     const handlePredict = async () => {
@@ -228,14 +233,22 @@ export default function HomeScreen({ navigation }) {
 
     // 🚀 Automatically refetch and predict when marker changes
     useEffect(() => {
-        if (!markerPos.latitude || !markerPos.longitude || !selectedDate) return;
+    if (!markerPos.latitude || !markerPos.longitude || !selectedDate) return;
 
         console.log('📍 Location changed:', markerPos);
         const fetchAndPredict = async () => {
             try {
                 setLoading(true);
-                await fetchHistoricalData(markerPos.latitude, markerPos.longitude, selectedDate);
-                makePrediction();
+                const d = await fetchHistoricalData(markerPos.latitude, markerPos.longitude, selectedDate);
+                if (d) {
+                    setTemperatureData(d.temperature || []);
+                    setRainfallData(d.rainfall || []);
+                    setWindData(d.wind || []);
+                    setHumidityData(d.humidity || []);
+                    setUvIndexData(d.uvIndex || []);
+                    setLabels(d.labels || []);
+                    makePrediction();
+                }
             } catch (err) {
                 console.error('❌ Auto-fetch error:', err);
             } finally {
@@ -246,44 +259,10 @@ export default function HomeScreen({ navigation }) {
         fetchAndPredict();
     }, [markerPos]);
 
-    const renderPredictionChart = () => {
-        if (!predictionData) return null;
-        const chartConfig = {
-            backgroundGradientFrom: '#fff4e6',
-            backgroundGradientTo: '#ffe6cc',
-            decimalPlaces: 1,
-            color: (opacity = 1) => `rgba(51,51,51,${opacity})`,
-            labelColor: (opacity = 1) => `rgba(51,51,51,${opacity})`,
-        };
-
-        return (
-            <Card style={styles.predictionCard}>
-                <Text style={styles.chartTitle}>Prediction Chart</Text>
-                <BarChart
-                    data={{
-                        labels: ['Temp','Rain','Wind','Humid','HeatIdx','AQ','UV','Pollen'],
-                        datasets: [{ data: [
-                            predictionData.temperature || 0,
-                            predictionData.rainfall || 0,
-                            predictionData.wind || 0,
-                            predictionData.humidity || 0,
-                            predictionData.heatIndex || 0,
-                            predictionData.airQuality || 0,
-                            predictionData.uvIndex || 0,
-                            predictionData.pollenCount || 0,
-                        ]}],
-                    }}
-                    width={mapSize - 20}
-                    height={220}
-                    chartConfig={chartConfig}
-                    style={{ borderRadius: 16 }}
-                />
-            </Card>
-        );
-    };
+    // prediction chart removed per request
 
     const renderCharts = useCallback(() => {
-        if (!settings?.displayData) return null;
+    if (!settings?.displayData) return null;
         const chartConfig = {
             backgroundGradientFrom: '#dbe9ff',
             backgroundGradientTo: '#e6f0ff',
@@ -298,10 +277,11 @@ export default function HomeScreen({ navigation }) {
             wind: { data: windData, label: 'Wind', unit: 'm/s' },
             humidity: { data: humidityData, label: 'Humidity', unit: '%' },
             uvIndex: { data: uvIndexData, label: 'UV Index', unit: '' },
-            pollenCount: { data: pollenCountData, label: 'Pollen Count', unit: '' },
         };
 
         return Object.keys(datasets).map((key) => {
+            // respect settings toggles: only render datasets enabled in displayData
+            if (!settings.displayData[key]) return null;
             const ds = datasets[key];
             if (!ds.data.length) return null;
             return (
@@ -319,42 +299,28 @@ export default function HomeScreen({ navigation }) {
                 </Card>
             );
         });
-    }, [temperatureData, rainfallData, windData, humidityData, uvIndexData, pollenCountData, labels]);
+    }, [temperatureData, rainfallData, windData, humidityData, uvIndexData, labels]);
 
     return (
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-            {/* Search */}
+            {/* Search - delegated to SearchBar component (presentational) */}
             <View style={{ width: mapSize, marginTop: 15, zIndex: 10 }}>
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search location..."
-                    value={searchQuery}
-                    onChangeText={handleSearchChange}
-                    placeholderTextColor="rgba(255,255,255,0.7)"
+                <SearchBar
+                    searchQuery={searchQuery}
+                    onChange={handleSearchChange}
+                    results={searchResults}
+                    onSelect={selectLocation}
                 />
-                {searchResults.length > 0 && (
-                    <View style={styles.floatingResults}>
-                        <ScrollView keyboardShouldPersistTaps="handled">
-                            {searchResults.map((item) => (
-                                <TouchableOpacity key={item.place_id} onPress={() => selectLocation(item)}>
-                                    <Text style={styles.resultItem}>{item.display_name}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </ScrollView>
-                    </View>
-                )}
             </View>
 
-            {/* Map */}
-            <MapView
-                style={[styles.map, { width: mapSize, height: mapSize, marginTop: 15 }]}
+            {/* Map - delegated to MapComponent which wraps react-native-maps */}
+            <MapComponent
                 region={region}
-                onRegionChangeComplete={setRegion}
-                onPress={(e) => setMarkerPos(e.nativeEvent.coordinate)}
-            >
-                <UrlTile urlTemplate="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" maximumZ={19} tileSize={128} />
-                <Marker coordinate={markerPos} title="Selected Location" />
-            </MapView>
+                markerPos={markerPos}
+                onRegionChange={setRegion}
+                onMarkerPress={(coord) => setMarkerPos(coord)}
+                mapSize={mapSize}
+            />
 
             {/* Date picker */}
             <View style={[styles.datePickerContainer, { width: mapSize }]}>
@@ -383,8 +349,37 @@ export default function HomeScreen({ navigation }) {
 
             {loading && <ActivityIndicator style={{ marginTop: 15 }} size="large" color="#7aaeff" />}
 
-            {renderPredictionChart()}
+            {/* prediction chart removed */}
             {renderCharts()}
+
+            {/* Weather Detail Cards (predictions) - presentational component usage */}
+            {predictionData && Object.keys(predictionData).length > 0 && (
+                <View style={styles.cardGrid}>
+                    {settings?.displayData?.temperature ? (
+                        <WeatherDetailCard title="Temperature" value={predictionData.temperature} unit="°C" status="Anomalous" color="#f76b1c" chartData={temperatureData} chartLabels={labels} chartWidth={mapSize - 40} chartLabel="Temperature (°C) per year" />
+                    ) : null}
+
+                    {settings?.displayData?.rainfall ? (
+                        <WeatherDetailCard title="Precipitation" value={predictionData.rainfall} unit="mm/day" status="Normal" color="#0088cc" chartData={rainfallData} chartLabels={labels} chartWidth={mapSize - 40} chartLabel="Precipitation (mm) per year" />
+                    ) : null}
+
+                    {settings?.displayData?.humidity ? (
+                        <WeatherDetailCard title="Humidity" value={predictionData.humidity} unit="%" status="Normal" color="#1e90ff" chartData={humidityData} chartLabels={labels} chartWidth={mapSize - 40} chartLabel="Humidity (%) per year" />
+                    ) : null}
+
+                    {settings?.displayData?.wind ? (
+                        <WeatherDetailCard title="Wind Speed" value={predictionData.wind} unit="m/s" status="Normal" color="#00b894" chartData={windData} chartLabels={labels} chartWidth={mapSize - 40} chartLabel="Wind (m/s) per year" />
+                    ) : null}
+
+                    {settings?.displayData?.uvIndex ? (
+                        <WeatherDetailCard title="UV Index" value={predictionData.uvIndex} unit="" status="Normal" color="#e67e22" chartData={uvIndexData} chartLabels={labels} chartWidth={mapSize - 40} chartLabel="UV Index per year" />
+                    ) : null}
+
+                    {settings?.displayData?.heatIndex ? (
+                        <WeatherDetailCard title="Heat Index" value={predictionData.heatIndex} unit="°C" status="Anomalous" color="#e74c3c" chartData={temperatureData.map((t,i) => calculateHeatIndex(t, humidityData[i]))} chartLabels={labels} chartWidth={mapSize - 40} chartLabel="Heat Index (°C) per year" />
+                    ) : null}
+                </View>
+            )}
 
             <DatePickerModal mode="single" visible={openDate} date={selectedDate} onDismiss={onDismissDate} onConfirm={onConfirmDate} locale="en" />
         </ScrollView>
@@ -463,6 +458,11 @@ const styles = StyleSheet.create({
         backgroundColor: '#dbe9ff',
     },
 
+    cardGrid: {
+        flexDirection: 'column',
+        marginTop: 20,
+        width: mapSize,
+    },
+
     resultItemText: { color: '#333' },
 });
-
