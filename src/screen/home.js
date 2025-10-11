@@ -20,7 +20,7 @@ import { fetchHistoricalData } from '../utils/nasaApi';
 import { Button, IconButton, Card } from 'react-native-paper';
 import { DatePickerModal } from 'react-native-paper-dates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LineChart, BarChart } from 'react-native-chart-kit';
+// small charts are rendered inside WeatherDetailCard; remove large chart imports
 
 const screenWidth = Dimensions.get('window').width;
 const containerPadding = 20;
@@ -215,7 +215,26 @@ export default function HomeScreen({ navigation }) {
 
         for (const key of Object.keys(targets)) {
             const { pred, coeffs } = runMLR(targets[key], preds[key]);
-            result[key] = pred;
+            let sanitized = pred;
+            // enforce sensible bounds for certain variables
+            if (sanitized != null) {
+                if (key === 'rainfall' || key === 'wind' || key === 'uvIndex') {
+                    if (sanitized < 0) {
+                        console.warn(`Clamping negative prediction for ${key}: ${sanitized} -> 0`);
+                        sanitized = 0;
+                    }
+                }
+                if (key === 'humidity') {
+                    if (sanitized < 0) {
+                        console.warn(`Clamping humidity prediction low bound ${sanitized} -> 0`);
+                        sanitized = 0;
+                    } else if (sanitized > 100) {
+                        console.warn(`Clamping humidity prediction high bound ${sanitized} -> 100`);
+                        sanitized = 100;
+                    }
+                }
+            }
+            result[key] = sanitized;
             if (coeffs) result[`${key}Coefficients`] = coeffs;
         }
 
@@ -261,45 +280,8 @@ export default function HomeScreen({ navigation }) {
 
     // prediction chart removed per request
 
-    const renderCharts = useCallback(() => {
-    if (!settings?.displayData) return null;
-        const chartConfig = {
-            backgroundGradientFrom: '#dbe9ff',
-            backgroundGradientTo: '#e6f0ff',
-            decimalPlaces: 1,
-            color: (opacity = 1) => `rgba(51,51,51,${opacity})`,
-            labelColor: (opacity = 1) => `rgba(51,51,51,${opacity})`,
-        };
-
-        const datasets = {
-            temperature: { data: temperatureData, label: 'Temperature', unit: '°C' },
-            rainfall: { data: rainfallData, label: 'Rainfall', unit: 'mm' },
-            wind: { data: windData, label: 'Wind', unit: 'm/s' },
-            humidity: { data: humidityData, label: 'Humidity', unit: '%' },
-            uvIndex: { data: uvIndexData, label: 'UV Index', unit: '' },
-        };
-
-        return Object.keys(datasets).map((key) => {
-            // respect settings toggles: only render datasets enabled in displayData
-            if (!settings.displayData[key]) return null;
-            const ds = datasets[key];
-            if (!ds.data.length) return null;
-            return (
-                <Card key={key} style={styles.dataCard}>
-                    <Text style={styles.chartTitle}>{`${ds.label} Chart for same day in each year`}</Text>
-                    <LineChart
-                        data={{ labels, datasets: [{ data: ds.data }] }}
-                        width={mapSize - 20}
-                        height={220}
-                        yAxisSuffix={ds.unit}
-                        chartConfig={chartConfig}
-                        bezier
-                        style={{ borderRadius: 16 }}
-                    />
-                </Card>
-            );
-        });
-    }, [temperatureData, rainfallData, windData, humidityData, uvIndexData, labels]);
+    // Large charts removed; mini charts live inside WeatherDetailCard
+    const renderCharts = useCallback(() => null, []);
 
     return (
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">

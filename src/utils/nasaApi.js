@@ -44,7 +44,13 @@ export const fetchHistoricalRange = async (lat, lon, startDate, endDate) => {
             const avgTemp = tMax != null && tMin != null ? (tMax + tMin)/2 : tMax ?? tMin;
 
             data.temperature.push(avgTemp ?? null);
-            data.rainfall.push(params.PRECTOTCORR?.[key] ?? null);
+            // clamp negative precipitation to 0 (some data sources may report small negative noise)
+            let precip = params.PRECTOTCORR?.[key];
+            if (precip != null && precip < 0) {
+                console.warn(`Clamping negative precipitation ${precip} -> 0 for ${key}`);
+                precip = 0;
+            }
+            data.rainfall.push(precip ?? null);
             data.wind.push(params.WS10M?.[key] ?? null);
             data.humidity.push(params.RH2M?.[key] ?? null);
             data.uvIndex.push(params.ALLSKY_SFC_UV_INDEX?.[key] ?? null);
@@ -91,7 +97,13 @@ export const fetchHistoricalData = async (lat, lon, date) => {
             const avgTemp = tMax != null && tMin != null ? (tMax + tMin)/2 : tMax ?? tMin;
 
             data.temperature.push(avgTemp ?? null);
-            data.rainfall.push(params.PRECTOTCORR?.[key] ?? null);
+            // clamp negative precipitation to 0
+            let precipY = params.PRECTOTCORR?.[key];
+            if (precipY != null && precipY < 0) {
+                console.warn(`Clamping negative precipitation ${precipY} -> 0 for ${key}`);
+                precipY = 0;
+            }
+            data.rainfall.push(precipY ?? null);
             data.wind.push(params.WS10M?.[key] ?? null);
             data.humidity.push(params.RH2M?.[key] ?? null);
             data.uvIndex.push(params.ALLSKY_SFC_UV_INDEX?.[key] ?? null);

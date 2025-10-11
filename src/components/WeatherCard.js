@@ -1,55 +1,185 @@
-import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Dimensions, ScrollView } from 'react-native';
 import { Card } from 'react-native-paper';
 import { LineChart } from 'react-native-chart-kit';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-/**
- * WeatherDetailCard
- * Props:
- * - title, value, unit, status, color (existing)
- * - chartData: array of numeric values (one per year) to show a mini chart
- * - chartLabels: array of labels (years) matching chartData
- * - chartWidth: optional numeric width for the chart
- */
-export default function WeatherDetailCard({ title, value, unit, status, color, chartData, chartLabels, chartWidth, chartLabel }) {
+// Unit conversion helpers
+const convertValue = (value, type, units) => {
+  if (value == null || isNaN(value)) return value;
+  switch (type) {
+    case 'temperature':
+      return units.temperature === '°F' ? value * 9 / 5 + 32 : value;
+    case 'rainfall':
+      return units.rainfall === 'inches' ? value / 25.4 : value;
+    case 'wind':
+      if (units.wind === 'km/h') return value * 3.6;
+      if (units.wind === 'mph') return value * 2.237;
+      return value;
+    default:
+      return value;
+  }
+};
+
+const getUnitSymbol = (type, units) => {
+  switch (type) {
+    case 'temperature': return units.temperature || '°C';
+    case 'rainfall': return units.rainfall || 'mm';
+    case 'wind': return units.wind || 'm/s';
+    case 'humidity': return '%';
+    case 'uvIndex': return '';
+    case 'heatIndex': return units.temperature || '°C';
+    default: return '';
+  }
+};
+
+export default function WeatherDetailCard({
+  title,
+  value,
+  status,
+  color,
+  chartData,
+  chartLabels,
+  chartWidth,
+  chartLabel,
+  large = false,
+}) {
   const screenW = Dimensions.get('window').width;
-  // make the mini-chart smaller so it comfortably fits inside the card on narrow screens
-  // default max width lowered further to 180 for compact cards
-  const width = chartWidth || Math.min(screenW - 120, 180);
+  const compactMax = Math.min(screenW - 160, 160);
+  const computedFullWidth = Math.min(screenW - 60, 800);
+  const width = large ? computedFullWidth : (chartWidth || compactMax);
+  const isFull = large || (chartWidth && chartWidth > compactMax);
+
+  const [tooltip, setTooltip] = useState(null);
+  const [units, setUnits] = useState({
+    temperature: '°C',
+    rainfall: 'mm',
+    wind: 'm/s',
+  });
+
+  // load user settings from AsyncStorage
+  useEffect(() => {
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem('appSettings');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.units) setUnits(parsed.units);
+        }
+      } catch (err) {
+        console.log('Failed to load units from settings', err);
+      }
+    })();
+  }, []);
+
+  // determine data type from title
+  const detectType = () => {
+    const key = title.toLowerCase();
+    if (key.includes('temp')) return 'temperature';
+    if (key.includes('rain')) return 'rainfall';
+    if (key.includes('wind')) return 'wind';
+    if (key.includes('humid')) return 'humidity';
+    if (key.includes('uv')) return 'uvIndex';
+    if (key.includes('heat')) return 'heatIndex';
+    return 'unknown';
+  };
+
+  const type = detectType();
+  const convertedValue = convertValue(value, type, units);
+  const convertedChartData = chartData
+    ? chartData.map((v) => convertValue(v, type, units))
+    : [];
+  const convertedUnit = getUnitSymbol(type, units);
 
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
         <Text style={[styles.title, { color }]}>{title}</Text>
-        <View style={[styles.badge, { backgroundColor: status === 'Normal' ? '#d3f9d8' : '#ffd6d6' }]}> 
-          <Text style={{ color: status === 'Normal' ? '#1b5e20' : '#b71c1c', fontWeight: '600' }}>{status}</Text>
+        <View
+          style={[
+            styles.badge,
+            { backgroundColor: status === 'Normal' ? '#d3f9d8' : '#ffd6d6' },
+          ]}
+        >
+          <Text
+            style={{
+              color: status === 'Normal' ? '#1b5e20' : '#b71c1c',
+              fontWeight: '600',
+            }}
+          >
+            {status}
+          </Text>
         </View>
       </View>
-      <Text style={styles.value}>{value !== null && value !== undefined ? `${value} ${unit}` : '--'}</Text>
 
-      {/* small inline chart showing historical values (one point per year) */}
-      {chartData && chartData.length > 0 && (
+      <Text style={styles.value}>
+        {convertedValue !== null && convertedValue !== undefined
+          ? `${convertedValue.toFixed(2)} ${convertedUnit}`
+          : '--'}
+      </Text>
+
+      {/* Chart */}
+      {convertedChartData && convertedChartData.length > 0 && (
         <View style={styles.chartWrap}>
           {chartLabel ? <Text style={styles.chartLabel}>{chartLabel}</Text> : null}
-          <LineChart
-            data={{ labels: chartLabels || [], datasets: [{ data: chartData.map(v => v == null ? 0 : v) }] }}
-            width={width}
-            height={64}
-            withDots={true}
-            dotRadius={2}
-            withInnerLines={false}
-            withOuterLines={false}
-            yAxisSuffix={unit}
-            yLabelsOffset={8}
-            chartConfig={{
-              backgroundGradientFrom: '#ffffff',
-              backgroundGradientTo: '#ffffff',
-              color: (opacity = 1) => `rgba(33,33,33,${opacity})`,
-              labelColor: (opacity = 1) => `rgba(60,60,60,${opacity})`,
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingHorizontal: isFull ? 0 : 16,
             }}
-            style={{ paddingRight: 0, paddingBottom: 8, alignSelf: 'center' }}
-            bezier
-          />
+          >
+            <LineChart
+              data={{
+                labels: chartLabels || [],
+                datasets: [{ data: convertedChartData.map(v => (v == null ? 0 : v)) }],
+              }}
+              width={Math.max(width, (convertedChartData.length || 1) * 60)}
+              height={isFull ? 240 : 140}
+              yAxisLabel=""
+              yAxisSuffix={convertedUnit}
+              fromZero
+              verticalLabelRotation={0}
+              withVerticalLabels
+              withHorizontalLabels
+              yLabelsOffset={10}   // offset text away from the axis
+              xLabelsOffset={20}
+              chartConfig={{
+                backgroundGradientFrom: '#dbe9ff',
+                backgroundGradientTo: '#e6f0ff',
+                decimalPlaces: 1,
+                color: (opacity = 1) => `rgba(51,51,51,${opacity})`,
+                labelColor: (opacity = 1) => `rgba(51,51,51,${opacity})`,
+                propsForLabels: { fontSize: 12 },
+                propsForBackgroundLines: { strokeDasharray: '' },
+              }}
+              style={{
+                marginVertical: 10,
+                borderRadius: 8,
+                paddingLeft: 60,   // more left padding for full Y labels
+                paddingRight: 60,
+                paddingBottom: 15,
+                marginLeft: -25,   // shifts chart right so Y labels remain visible
+                alignSelf: 'center',
+              }}
+              bezier
+              onDataPointClick={(data) => {
+                setTooltip({
+                  x: data.index,
+                  y: data.value,
+                  label: chartLabels?.[data.index] ?? String(data.index),
+                });
+                setTimeout(() => setTooltip(null), 2000);
+              }}
+            />
+          </ScrollView>
+          {tooltip ? (
+            <View style={styles.tooltip} pointerEvents="none">
+              <Text style={styles.tooltipText}>
+                {`${tooltip.label}: ${tooltip.y.toFixed(2)} ${convertedUnit}`}
+              </Text>
+            </View>
+          ) : null}
         </View>
       )}
 
@@ -69,13 +199,19 @@ const styles = StyleSheet.create({
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize: 14, fontWeight: '600' },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
+  badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   value: { fontSize: 18, fontWeight: 'bold', marginTop: 10, color: '#333' },
   description: { fontSize: 12, color: '#777', marginTop: 6 },
-  chartWrap: { marginTop: 10, marginLeft: 12 },
+  chartWrap: { marginTop: 10, marginLeft: 6 },
   chartLabel: { fontSize: 12, color: '#555', marginBottom: 4 },
+  tooltip: {
+    position: 'absolute',
+    top: 8,
+    right: 12,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  tooltipText: { color: 'white', fontSize: 12 },
 });

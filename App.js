@@ -26,15 +26,17 @@ registerTranslation('en', {
   close: 'Close',
 });
 
-// Custom Paper theme
+// Custom Paper theme aligned with WeatherCard styling
+// - background uses the light-blue chart gradient base
+// - surface (cards) are white to match WeatherCard card background
 const customTheme = {
   ...MD3LightTheme,
   colors: {
     ...MD3LightTheme.colors,
-    primary: '#7aaeff',
-    secondary: '#a0c4ff',
-    background: '#e6f0ff',
-    surface: '#dbe9ff',
+    primary: '#7aaeff',        // button/header primary
+    secondary: '#e6f0ff',      // subtle secondary tint
+    background: '#dbe9ff',     // app background matches chart gradient base
+    surface: '#ffffff',        // card surfaces remain white like WeatherCard
     onPrimary: '#ffffff',
     onSecondary: '#333333',
     onSurface: '#333333',
