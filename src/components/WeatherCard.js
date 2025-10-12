@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Dimensions, ScrollView } from 'react-native';
 import { Card } from 'react-native-paper';
-import { LineChart } from 'react-native-chart-kit';
+import { LineChart, BarChart } from 'react-native-chart-kit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Unit conversion helpers
+// --- Helpers ---
 const convertValue = (value, type, units) => {
   if (value == null || isNaN(value)) return value;
   switch (type) {
@@ -33,10 +33,31 @@ const getUnitSymbol = (type, units) => {
   }
 };
 
+// --- Determine comfort from data ---
+const getComfortStatus = (type, value) => {
+  if (value == null || isNaN(value)) return 'Unknown';
+
+  switch (type) {
+    case 'temperature':
+      return value >= 18 && value <= 28 ? 'Comfortable' : 'Uncomfortable';
+    case 'humidity':
+      return value >= 30 && value <= 60 ? 'Comfortable' : 'Uncomfortable';
+    case 'wind':
+      return value <= 10 ? 'Comfortable' : 'Uncomfortable';
+    case 'rainfall':
+      return value === 0 ? 'Comfortable' : 'Uncomfortable';
+    case 'uvIndex':
+      return value <= 5 ? 'Comfortable' : 'Uncomfortable';
+    case 'heatIndex':
+      return value <= 32 ? 'Comfortable' : 'Uncomfortable';
+    default:
+      return 'Comfortable';
+  }
+};
+
 export default function WeatherDetailCard({
   title,
   value,
-  status,
   color,
   chartData,
   chartLabels,
@@ -56,8 +77,8 @@ export default function WeatherDetailCard({
     rainfall: 'mm',
     wind: 'm/s',
   });
+  const [graphType, setGraphType] = useState('line');
 
-  // load user settings from AsyncStorage
   useEffect(() => {
     (async () => {
       try {
@@ -65,14 +86,14 @@ export default function WeatherDetailCard({
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed.units) setUnits(parsed.units);
+          if (parsed.display?.graphType) setGraphType(parsed.display.graphType);
         }
       } catch (err) {
-        console.log('Failed to load units from settings', err);
+        console.log('Failed to load settings', err);
       }
     })();
   }, []);
 
-  // determine data type from title
   const detectType = () => {
     const key = title.toLowerCase();
     if (key.includes('temp')) return 'temperature';
@@ -86,6 +107,7 @@ export default function WeatherDetailCard({
 
   const type = detectType();
   const convertedValue = convertValue(value, type, units);
+  const comfortStatus = getComfortStatus(type, convertedValue);
   const convertedChartData = chartData
     ? chartData.map((v) => convertValue(v, type, units))
     : [];
@@ -98,16 +120,19 @@ export default function WeatherDetailCard({
         <View
           style={[
             styles.badge,
-            { backgroundColor: status === 'Normal' ? '#d3f9d8' : '#ffd6d6' },
+            {
+              backgroundColor:
+                comfortStatus === 'Comfortable' ? '#d3f9d8' : '#ffd6d6',
+            },
           ]}
         >
           <Text
             style={{
-              color: status === 'Normal' ? '#1b5e20' : '#b71c1c',
+              color: comfortStatus === 'Comfortable' ? '#1b5e20' : '#b71c1c',
               fontWeight: '600',
             }}
           >
-            {status}
+            {comfortStatus}
           </Text>
         </View>
       </View>
@@ -125,53 +150,55 @@ export default function WeatherDetailCard({
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{
-              paddingHorizontal: isFull ? 0 : 16,
-            }}
+            contentContainerStyle={{ paddingHorizontal: isFull ? 0 : 16 }}
           >
-            <LineChart
-              data={{
-                labels: chartLabels || [],
-                datasets: [{ data: convertedChartData.map(v => (v == null ? 0 : v)) }],
-              }}
-              width={Math.max(width, (convertedChartData.length || 1) * 60)}
-              height={isFull ? 240 : 140}
-              yAxisLabel=""
-              yAxisSuffix={convertedUnit}
-              fromZero
-              verticalLabelRotation={0}
-              withVerticalLabels
-              withHorizontalLabels
-              yLabelsOffset={10}   // offset text away from the axis
-              xLabelsOffset={20}
-              chartConfig={{
-                backgroundGradientFrom: '#dbe9ff',
-                backgroundGradientTo: '#e6f0ff',
-                decimalPlaces: 1,
-                color: (opacity = 1) => `rgba(51,51,51,${opacity})`,
-                labelColor: (opacity = 1) => `rgba(51,51,51,${opacity})`,
-                propsForLabels: { fontSize: 12 },
-                propsForBackgroundLines: { strokeDasharray: '' },
-              }}
-              style={{
-                marginVertical: 10,
-                borderRadius: 8,
-                paddingLeft: 60,   // more left padding for full Y labels
-                paddingRight: 60,
-                paddingBottom: 15,
-                marginLeft: -25,   // shifts chart right so Y labels remain visible
-                alignSelf: 'center',
-              }}
-              bezier
-              onDataPointClick={(data) => {
-                setTooltip({
-                  x: data.index,
-                  y: data.value,
-                  label: chartLabels?.[data.index] ?? String(data.index),
-                });
-                setTimeout(() => setTooltip(null), 2000);
-              }}
-            />
+            {(() => {
+              const ChartType = graphType === 'bar' ? BarChart : LineChart;
+              return (
+                <ChartType
+                  data={{
+                    labels: chartLabels || [],
+                    datasets: [{ data: convertedChartData.map(v => (v == null ? 0 : v)) }],
+                  }}
+                  width={Math.max(width, (convertedChartData.length || 1) * 60)}
+                  height={isFull ? 240 : 140}
+                  yAxisSuffix={convertedUnit}
+                  fromZero
+                  verticalLabelRotation={0}
+                  withVerticalLabels
+                  withHorizontalLabels
+                  yLabelsOffset={10}
+                  xLabelsOffset={20}
+                  chartConfig={{
+                    backgroundGradientFrom: '#dbe9ff',
+                    backgroundGradientTo: '#e6f0ff',
+                    decimalPlaces: 1,
+                    color: (opacity = 1) => `rgba(51,51,51,${opacity})`,
+                    labelColor: (opacity = 1) => `rgba(51,51,51,${opacity})`,
+                    propsForLabels: { fontSize: 12 },
+                    propsForBackgroundLines: { strokeDasharray: '' },
+                  }}
+                  style={{
+                    marginVertical: 10,
+                    borderRadius: 8,
+                    paddingLeft: 60,
+                    paddingRight: 60,
+                    paddingBottom: 15,
+                    marginLeft: -25,
+                    alignSelf: 'center',
+                  }}
+                  bezier={graphType === 'line'}
+                  onDataPointClick={(data) => {
+                    setTooltip({
+                      x: data.index,
+                      y: data.value,
+                      label: chartLabels?.[data.index] ?? String(data.index),
+                    });
+                    setTimeout(() => setTooltip(null), 2000);
+                  }}
+                />
+              );
+            })()}
           </ScrollView>
           {tooltip ? (
             <View style={styles.tooltip} pointerEvents="none">
@@ -183,7 +210,9 @@ export default function WeatherDetailCard({
         </View>
       )}
 
-      <Text style={styles.description}>Status based on predictive analysis</Text>
+      <Text style={styles.description}>
+        Comfort level based on predictive thresholds
+      </Text>
     </Card>
   );
 }
@@ -215,3 +244,4 @@ const styles = StyleSheet.create({
   },
   tooltipText: { color: 'white', fontSize: 12 },
 });
+
