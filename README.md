@@ -54,7 +54,11 @@ Our weather data is based on historical records and analyzed using a multiple li
 
 # Team member
 Ethen Lau Dee Hung – Lead developer, dataset integration, app architecture
+
 Yong Men Jie – Data visualization, UX/UI design
+
 Anson Wong Sie Xien – Backend development
+
 Jotham Ling Hou Heng – Testing, documentation
+
 Vincent Kong Yong Jun – Testing, documentation, user feedback
