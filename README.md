@@ -39,3 +39,19 @@ npx expo start
 ```
 
 then scan the QR code with Expo Go
+
+### Data Accuracy
+Our weather data are base on historical data and a formula call [multiple linear regression](https://en.wikipedia.org/wiki/Linear_regression#Interpretation) 
+
+# Prototype
+
+# Future Improvement
+- Expand to real-time weather alerts using live satellite feeds.
+- Collaborate with local authorities to provide community-level risk insights.
+
+# Team member
+Ethen Lau Dee Hung – Lead developer, dataset integration, app architecture
+Yong Men Jie – Data visualization, UX/UI design
+Anson Wong Sie Xien – Backend development
+Jotham Ling Hou Heng – Testing, documentation
+Vincent Kong Yong Jun – Testing, documentation, user feedback
