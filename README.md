@@ -17,31 +17,34 @@ EventSky empowers individuals, event organizers, and communities to plan outdoor
 - Visualizations include interactive maps, probability bars, and distribution plots.
 - Supports CSV and JSON downloads with metadata for further analysis.
 
-### Installation
-as this is only a development build it need some setup on computer to run.
+## Installation
+This is a development build, so some setup is required on your computer and phone to run the project.
 
-#### On PC :
-- nodejs development enviroment
-- git
+On PC:
+- Node.js development environment
+- Git
 
-#### On Phone :
+On Phone:
 - Expo Go
 
-after all of the requirement installed run in terminal :
+### Setup & Run:
+
+Clone the repository and install dependencies:
 ```
 git clone https://github.com/GalaxyNgc6503/NASA_SPACE_APP_CHALLENGES.git
+cd NASA_SPACE_APP_CHALLENGES
 npm install
 ```
 
-To run the project run :
+Start the project:
 ```
 npx expo start
 ```
 
-then scan the QR code with Expo Go
+Scan the QR code with the Expo Go app on your phone to run the app.
 
-### Data Accuracy
-Our weather data are base on historical data and a formula call [multiple linear regression](https://en.wikipedia.org/wiki/Linear_regression#Interpretation) 
+## Data Accuracy
+Our weather data is based on historical records and analyzed using a multiple linear regression model. [Learn more about the method here.](https://en.wikipedia.org/wiki/Linear_regression#Interpretation)
 
 # Prototype
 
