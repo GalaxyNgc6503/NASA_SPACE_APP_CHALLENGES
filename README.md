@@ -1,17 +1,30 @@
 # EventSky : AI driven trip planning app
-EventSky is a mobile app that improves long-term weather planning by using decades of historical climate data, including NASA POWER and GPM datasets, to estimate the probability of extreme conditions like heat, cold, rainfall, or strong winds. Users can select a location and date, and the app calculates averages, extremes, and exceedance probabilities, presenting results with clear visualizations such as probability bars, distribution plots, and interactive maps. EventSky also allows data downloads in CSV or JSON with metadata and direct NASA links, helping individuals and organizers make informed decisions and manage weather-related risks.
+Plan smarter, stay safe, and enjoy the outdoors with advanced weather probability forecasts.
+
 # Problem Statement
-Planning outdoor activities and events is often disrupted by unpredictable extreme weather, and conventional long-term forecasts are limited in accuracy and scope. Individuals, organizers, and communities lack accessible tools that leverage historical climate records and advanced datasets to assess the probability of heat, cold, rainfall, strong winds, or general discomfort for a specific location and date. This gap makes it difficult to make informed decisions, manage weather-related risks, and understand potential impacts of climate variability and change.
+Planning outdoor activities and events is often disrupted by unpredictable weather, and conventional long-term forecasts are limited in accuracy and scope. Individuals, organizers, and communities lack accessible tools that leverage historical climate records and advanced datasets to assess the probability of heat, cold, rainfall, strong winds, or general discomfort for a specific location and date. This gap makes it difficult to make informed decisions, manage weather-related risks, and understand potential impacts of climate variability and change.
 
+# Solution
+EventSky is a mobile app that leverages decades of historical climate data, including NASA POWER and GPM datasets, to estimate the probability of extreme weather conditions. Users select a location and date, and the app calculates averages, extremes, and exceedance probabilities, presenting results through clear, interactive visualizations such as probability bars, distribution plots, and maps. Data can be downloaded in CSV or JSON format with metadata and direct links to NASA sources.
 
-# Installation
+# Impact
+EventSky empowers individuals, event organizers, and communities to plan outdoor activities safely, manage weather risks, and better understand the potential impacts of climate variability. By transforming complex Earth observation data into actionable insights, the app supports proactive decision-making and reduces the risk of weather-related disruptions.
+
+# Technology / Methodology
+- Built as a mobile application for both iOS and Android.
+- Uses historical climate and reanalysis datasets from NASA POWER and GPM.
+- Processes data with Python and integrates APIs to calculate exceedance probabilities.
+- Visualizations include interactive maps, probability bars, and distribution plots.
+- Supports CSV and JSON downloads with metadata for further analysis.
+
+### Installation
 as this is only a development build it need some setup on computer to run.
 
-### On PC :
+#### On PC :
 - nodejs development enviroment
 - git
 
-### On Phone :
+#### On Phone :
 - Expo Go
 
 after all of the requirement installed run in terminal :
