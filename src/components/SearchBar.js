@@ -9,6 +9,7 @@ import { View, TextInput, ScrollView, TouchableOpacity, Text, StyleSheet } from 
  * - results: array of result objects (should include place_id and display_name)
  * - onSelect: function(item)
  */
+
 export default function SearchBar({ searchQuery, onChange, results, onSelect }) {
     return (
         <View style={{ width: '100%', zIndex: 10 }}>

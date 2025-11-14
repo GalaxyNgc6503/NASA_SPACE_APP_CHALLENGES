@@ -4,7 +4,7 @@
     "slug": "Nasa_challenges",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/photo_2025-10-05_10-31-01.jpg",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -20,10 +20,16 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.ngc6503.Nasa_challenges"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c8b5f197-886d-439a-9304-89cbd47f20df"
+      }
     }
   }
 }
