@@ -1,7 +1,7 @@
 # **EventSky : AI driven trip planning app**
 Plan smarter, stay safe, and enjoy the outdoors with advanced weather probability forecasts.
 <a href="https://www.youtube.com/watch?v=mVCaTrWwCXs&feature=youtu.be
-" target="_blank"><img src="http://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg" 
+" target="_blank"><img src="http://img.youtube.com/vi/mVCaTrWwCXs/0.jpg" 
 alt="IMAGE ALT TEXT HERE" width="240" height="180" border="10" /></a>
 
 # Problem Statement
