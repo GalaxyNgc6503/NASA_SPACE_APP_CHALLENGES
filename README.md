@@ -1,4 +1,4 @@
-# EventSky : AI driven trip planning app
+# **EventSky : AI driven trip planning app**
 Plan smarter, stay safe, and enjoy the outdoors with advanced weather probability forecasts.
 
 # Problem Statement
@@ -12,8 +12,8 @@ EventSky empowers individuals, event organizers, and communities to plan outdoor
 
 # Technology / Methodology
 - Built as a mobile application for both iOS and Android.
-- Uses historical climate and reanalysis datasets from NASA POWER and GPM.
-- Processes data with Python and integrates APIs to calculate exceedance probabilities.
+- Uses historical climate and reanalysis datasets from NASA POWER.
+- Processes data with Javascript and integrates APIs to calculate exceedance probabilities.
 - Visualizations include interactive maps, probability bars, and distribution plots.
 - Supports CSV and JSON downloads with metadata for further analysis.
 
@@ -45,16 +45,18 @@ Scan the QR code with the Expo Go app on your phone to run the app.
 
 ## Data Accuracy
 Our weather data is based on historical records and analyzed using a multiple linear regression model. [Learn more about the method here.](https://en.wikipedia.org/wiki/Linear_regression#Interpretation)
+![Multi linear regression](https://assets/multiple-linear-regression.png)
 
 # Prototype
+## Main Page
 
 # Future Improvement
 - Expand to real-time weather alerts using live satellite feeds.
 - Collaborate with local authorities to provide community-level risk insights.
 
 # Team member
-- Ethen Lau Dee Hung – Lead developer, dataset integration, app architecture
-- Yong Men Jie – Data visualization, UX/UI design
-- Anson Wong Sie Xien – Backend development
-- Jotham Ling Hou Heng – Testing, documentation
-- Vincent Kong Yong Jun – Testing, documentation, user feedback
+- **Ethen Lau Dee Hung** – Lead developer, dataset integration, app architecture
+- **Yong Men Jie** – Data visualization, UX/UI design
+- **Anson Wong Sie Xien** – Backend development
+- **Jotham Ling Hou Heng** – Testing, documentation
+- **Vincent Kong Yong Jun** – Testing, documentation, user feedback
