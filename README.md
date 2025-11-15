@@ -1,5 +1,8 @@
 # **EventSky : AI driven trip planning app**
 Plan smarter, stay safe, and enjoy the outdoors with advanced weather probability forecasts.
+<a href="https://www.youtube.com/watch?v=mVCaTrWwCXs&feature=youtu.be
+" target="_blank"><img src="http://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg" 
+alt="IMAGE ALT TEXT HERE" width="240" height="180" border="10" /></a>
 
 # Problem Statement
 Planning outdoor activities and events is often disrupted by unpredictable weather, and conventional long-term forecasts are limited in accuracy and scope. Individuals, organizers, and communities lack accessible tools that leverage historical climate records and advanced datasets to assess the probability of heat, cold, rainfall, strong winds, or general discomfort for a specific location and date. This gap makes it difficult to make informed decisions, manage weather-related risks, and understand potential impacts of climate variability and change.
