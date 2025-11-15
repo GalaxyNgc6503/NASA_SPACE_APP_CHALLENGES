@@ -48,7 +48,7 @@ Scan the QR code with the Expo Go app on your phone to run the app.
 
 ## Data Accuracy
 Our weather data is based on historical records and analyzed using a multiple linear regression model. [Learn more about the method here.](https://en.wikipedia.org/wiki/Linear_regression#Interpretation)
-![Multi linear regression](https://github.com/GalaxyNgc6503/NASA_SPACE_APP_CHALLENGES/blob/main/assets/multiple-linear-regression.png)
+<img src="https://github.com/GalaxyNgc6503/NASA_SPACE_APP_CHALLENGES/blob/main/assets/multiple-linear-regression.png" alt="chart" width="240"/>
 
 # Prototype
 ## Main Page
