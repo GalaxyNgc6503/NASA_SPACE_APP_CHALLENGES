@@ -51,6 +51,8 @@ Our weather data is based on historical records and analyzed using a multiple li
 
 <img src="https://github.com/GalaxyNgc6503/NASA_SPACE_APP_CHALLENGES/blob/main/assets/multiple-linear-regression.png" alt="chart" width="400"/>
 
+Accourding to our testing the prediction data deviation will at +- 1.5
+
 # Prototype
 ## Main Page
 
