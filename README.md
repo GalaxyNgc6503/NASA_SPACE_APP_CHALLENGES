@@ -53,9 +53,6 @@ Our weather data is based on historical records and analyzed using a multiple li
 
 Accourding to our testing the prediction data deviation will at +- 1.5
 
-# Prototype
-## Main Page
-
 # Future Improvement
 - Expand to real-time weather alerts using live satellite feeds.
 - Collaborate with local authorities to provide community-level risk insights.
